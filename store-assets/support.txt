@@ -1,0 +1,13 @@
+Need help?
+
+1️⃣ Make sure you added your YouTube API key:
+   • Right-click the extension icon → Options → Paste your key → Save.
+
+2️⃣ No videos appear?
+   • Reload the LeetCode problem page or check Console for quota errors.
+   • Make sure your API key has YouTube Data API v3 enabled.
+
+3️⃣ How to get a key:
+   • https://console.cloud.google.com/apis/credentials → “Create credentials → API key”
+
+Contact: leetcodeyt.support@gmail.com

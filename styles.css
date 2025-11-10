@@ -1,0 +1,25 @@
+/* styles.css - horizontal carousel and player responsive rules (user-key edition) */
+
+.lc-yt-carousel {
+  display:flex; gap:10px; overflow-x:auto; padding:6px 4px; -webkit-overflow-scrolling: touch;
+}
+.lc-yt-carousel::-webkit-scrollbar{height:8px}
+.lc-yt-carousel::-webkit-scrollbar-thumb{background:rgba(100,100,100,0.2);border-radius:6px}
+
+.lc-yt-card-horizontal { box-sizing:border-box; transition:transform .12s ease, box-shadow .12s ease; }
+.lc-yt-card-horizontal:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(2,6,23,0.06); }
+.lc-yt-card-horizontal img { display:block; width:100%; height:100%; object-fit:cover; }
+
+.lc-yt-player-inner { width:100%; max-width:1100px; background:#000; border-radius:8px; overflow:hidden; position:relative; padding-top:56.25%; }
+.lc-yt-player-inner .lc-yt-iframe { position:absolute; left:0; top:0; width:100%; height:100%; border:0; }
+
+.lc-yt-player-actions { width:100%; max-width:1100px; display:flex; gap:10px; align-items:center; }
+
+.lc-yt-scroll-btn { padding:6px 10px; border-radius:6px; border:none; cursor:pointer; background: rgba(0,0,0,0.06); }
+
+@media (max-width:900px) { .lc-yt-player-inner { max-width:760px } }
+@media (max-width:560px) { .lc-yt-player-inner { max-width:100%; padding-top:56.25% } }
+
+@media (prefers-color-scheme: dark) {
+  .lc-yt-scroll-btn { background: rgba(255,255,255,0.06); color:#fff }
+}

@@ -1,0 +1,20 @@
+Bring YouTube solution tutorials directly into LeetCode!
+
+💡 What it does:
+• Displays related YouTube videos right inside each problem page.
+• Inline player — watch without leaving LeetCode.
+• Adapts automatically to LeetCode’s light/dark themes.
+• 100% client-side: no servers, no tracking.
+
+⚙️ How to use:
+1. After installation, open the extension’s Options page.
+2. Create a free YouTube Data API key from Google Cloud Console.
+3. Paste the key into the Options page and save.
+4. Visit any LeetCode problem — the video carousel appears instantly!
+
+🔒 Privacy:
+• Your API key is stored locally in Chrome storage.
+• It is never sent to anyone except directly to YouTube’s API.
+• No analytics, tracking, or user data collection.
+
+This is a free, open, personal productivity tool for LeetCode learners.
