@@ -3,6 +3,8 @@
 
 (function () {
   const PANEL_ID = "lc-youtube-panel-userkey";
+  const TOGGLE_BTN_ID = "lc-youtube-toggle-btn";
+  let isVideosVisible = false; // Track visibility state (hidden by default)
 
   async function loadUserKey() {
     return new Promise((resolve) => {
@@ -115,6 +117,40 @@
 
   function renderCarousel(panel, items, colors) {
     panel.innerHTML = '';
+    
+    // Create toggle button container
+    const toggleContainer = document.createElement('div');
+    toggleContainer.style.display = 'flex';
+    toggleContainer.style.justifyContent = 'flex-start';
+    toggleContainer.style.marginBottom = '8px';
+    
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = TOGGLE_BTN_ID;
+    toggleBtn.textContent = isVideosVisible ? '🎬 Hide Videos' : '🎬 Show Videos';
+    toggleBtn.style.padding = '6px 12px';
+    toggleBtn.style.borderRadius = '6px';
+    toggleBtn.style.border = `1px solid ${hexAlpha(colors.subtext || '#000', 0.2)}`;
+    toggleBtn.style.background = colors.panel;
+    toggleBtn.style.color = colors.text;
+    toggleBtn.style.cursor = 'pointer';
+    toggleBtn.style.fontWeight = '600';
+    toggleBtn.style.fontSize = '0.9rem';
+    toggleContainer.appendChild(toggleBtn);
+    panel.appendChild(toggleContainer);
+    
+    // Create content wrapper for collapsible content
+    const contentWrapper = document.createElement('div');
+    contentWrapper.className = 'lc-yt-content-wrapper';
+    contentWrapper.style.display = isVideosVisible ? 'block' : 'none';
+    panel.appendChild(contentWrapper);
+    
+    // Toggle button click handler
+    toggleBtn.addEventListener('click', () => {
+      isVideosVisible = !isVideosVisible;
+      contentWrapper.style.display = isVideosVisible ? 'block' : 'none';
+      toggleBtn.textContent = isVideosVisible ? '🎬 Hide Videos' : '🎬 Show Videos';
+    });
+    
     const header = document.createElement('div');
     header.className = 'lc-yt-carousel-header';
     header.style.display = 'flex';
@@ -122,7 +158,7 @@
     header.style.alignItems = 'center';
     header.style.marginBottom = '6px';
     header.innerHTML = `<div style="font-weight:700;color:${colors.text}">YouTube solutions</div><div style="font-size:0.85rem;color:${colors.subtext}">Swipe/scroll →</div>`;
-    panel.appendChild(header);
+    contentWrapper.appendChild(header);
 
     const carousel = document.createElement('div');
     carousel.className = 'lc-yt-carousel';
@@ -133,7 +169,7 @@
     carousel.style.paddingBottom = '6px';
     carousel.style.alignItems = 'flex-start';
     carousel.style.scrollBehavior = 'smooth';
-    panel.appendChild(carousel);
+    contentWrapper.appendChild(carousel);
 
     if (!items || items.length === 0) {
       const empty = document.createElement('div');
