@@ -34,12 +34,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Load saved key on page load
-  chrome.storage.sync.get(['userApiKey'], (res) => {
-    if (res.userApiKey) {
-      keyInput.value = res.userApiKey;
-      showStatus('✅ Your API key is loaded and ready!', 'success');
+  // Load saved key on page load (encrypted storage)
+  CryptoUtils.loadApiKey().then((apiKey) => {
+    if (apiKey) {
+      keyInput.value = apiKey;
+      showStatus('✅ Your API key is loaded and ready! (encrypted)', 'success');
     }
+  }).catch((e) => {
+    console.error('Failed to load API key:', e);
+    showStatus('⚠️ Failed to load saved key', 'warning');
   });
 
   // Save button handler
@@ -62,14 +65,20 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.classList.remove('loading');
     
     if (result.valid) {
-      chrome.storage.sync.set({ userApiKey: k }, () => {
-        showStatus('✅ Key saved! Your API key is working perfectly.', 'success');
-      });
+      try {
+        await CryptoUtils.saveApiKey(k);
+        showStatus('✅ Key encrypted & saved! Your API key is working perfectly.', 'success');
+      } catch (e) {
+        showStatus('❌ Failed to save key securely. Please try again.', 'error');
+      }
     } else if (result.error === 'quota') {
       // Still save the key, but warn about quota
-      chrome.storage.sync.set({ userApiKey: k }, () => {
-        showStatus('⚠️ Key saved, but your daily quota is exhausted. It resets at midnight Pacific Time.', 'warning');
-      });
+      try {
+        await CryptoUtils.saveApiKey(k);
+        showStatus('⚠️ Key encrypted & saved, but your daily quota is exhausted. It resets at midnight Pacific Time.', 'warning');
+      } catch (e) {
+        showStatus('❌ Failed to save key securely.', 'error');
+      }
     } else if (result.error === 'api_not_enabled') {
       showStatus('❌ YouTube Data API v3 is not enabled. Please enable it in Google Cloud Console first.', 'error');
       keyInput.classList.add('shake');
@@ -80,25 +89,45 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => keyInput.classList.remove('shake'), 500);
     } else {
       // Save anyway for other errors (might be temporary)
-      chrome.storage.sync.set({ userApiKey: k }, () => {
-        showStatus('✅ Key saved! If you face issues, check your Google Cloud Console.', 'success');
-      });
+      try {
+        await CryptoUtils.saveApiKey(k);
+        showStatus('✅ Key encrypted & saved! If you face issues, check your Google Cloud Console.', 'success');
+      } catch (e) {
+        showStatus('❌ Failed to save key securely.', 'error');
+      }
     }
   });
 
   // Clear button handler
-  document.getElementById('clearBtn').addEventListener('click', () => {
-    chrome.storage.sync.remove(['userApiKey'], () => {
+  document.getElementById('clearBtn').addEventListener('click', async () => {
+    try {
+      await CryptoUtils.removeApiKey();
       keyInput.value = '';
       showStatus('🗑️ Key removed successfully.', 'warning');
       keyInput.focus();
-    });
+    } catch (e) {
+      showStatus('❌ Failed to remove key.', 'error');
+    }
   });
 
   // Add keyboard shortcut (Enter to save)
   keyInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       document.getElementById('saveBtn').click();
+    }
+  });
+
+  // Toggle password visibility
+  document.getElementById('toggleVisibility').addEventListener('click', () => {
+    const toggleBtn = document.getElementById('toggleVisibility');
+    if (keyInput.type === 'password') {
+      keyInput.type = 'text';
+      toggleBtn.textContent = '🙈';
+      toggleBtn.title = 'Hide key';
+    } else {
+      keyInput.type = 'password';
+      toggleBtn.textContent = '👁️';
+      toggleBtn.title = 'Show key';
     }
   });
 });
