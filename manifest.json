@@ -22,6 +22,7 @@
         "https://leetcode.com/*"
       ],
       "js": [
+        "crypto-utils.js",
         "content.js"
       ],
       "run_at": "document_idle"
