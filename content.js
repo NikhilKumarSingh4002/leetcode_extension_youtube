@@ -39,26 +39,47 @@
     const url = endpoint + '?' + params.toString();
     const resp = await fetch(url, { method: 'GET' });
     if (!resp.ok) {
-      const txt = await resp.text();
-      console.error('YouTube API error', resp.status, txt);
-      return [];
+      try {
+        const errorData = await resp.json();
+        const error = errorData?.error;
+        const reason = error?.errors?.[0]?.reason;
+        
+        if (reason === 'quotaExceeded') {
+          return { error: 'quota_exceeded', items: [] };
+        } else if (reason === 'accessNotConfigured' || reason === 'forbidden') {
+          return { error: 'api_not_enabled', items: [] };
+        } else if (resp.status === 400) {
+          return { error: 'invalid_key', items: [] };
+        }
+        console.error('YouTube API error', resp.status, errorData);
+        return { error: 'api_error', items: [] };
+      } catch (e) {
+        console.error('YouTube API error', resp.status);
+        return { error: 'api_error', items: [] };
+      }
     }
     const data = await resp.json();
-    if (!data.items) return [];
-    return data.items.map(it => ({
-      videoId: it.id.videoId,
-      title: it.snippet.title,
-      channelTitle: it.snippet.channelTitle,
-      thumbnail: (it.snippet.thumbnails && (it.snippet.thumbnails.medium || it.snippet.thumbnails.default) && (it.snippet.thumbnails.medium || it.snippet.thumbnails.default).url) || ''
-    }));
+    if (!data.items) return { items: [] };
+    return {
+      items: data.items.map(it => ({
+        videoId: it.id.videoId,
+        title: it.snippet.title,
+        channelTitle: it.snippet.channelTitle,
+        thumbnail: (it.snippet.thumbnails && (it.snippet.thumbnails.medium || it.snippet.thumbnails.default) && (it.snippet.thumbnails.medium || it.snippet.thumbnails.default).url) || ''
+      }))
+    };
   }
 
   async function fetchVideos(query) {
     const key = await loadUserKey();
     if (!key) return { error: 'no_key', items: [] };
     try {
-      const items = await callYouTubeSearch(query, key);
-      return { items };
+      const result = await callYouTubeSearch(query, key);
+      // Pass through any errors from the API call
+      if (result.error) {
+        return result;
+      }
+      return { items: result.items || [] };
     } catch (e) {
       console.error('fetchVideos failed', e);
       return { error: 'fetch_error', items: [] };
@@ -185,13 +206,95 @@
       if (isVideosVisible) {
         // Only fetch videos if not already loaded
         if (!videosLoaded) {
-          contentWrapper.innerHTML = `<div style="color:${colors.subtext}">Loading YouTube solutions...</div>`;
+          contentWrapper.innerHTML = `<div style="color:${colors.subtext};padding:12px 0;">⏳ Loading YouTube solutions...</div>`;
           contentWrapper.style.display = 'block';
           const data = await fetchVideos(query);
-          if (data.error === 'no_key') {
-            contentWrapper.innerHTML = `<div style="color:${colors.subtext}">No YouTube API key configured. Open extension options to add yours.</div>`;
+          
+          // Handle different error types with friendly messages
+          if (data.error) {
+            let errorMessage = '';
+            let errorStyle = `
+              background: ${hexAlpha(colors.accent || '#ef4444', 0.1)};
+              border: 1px solid ${hexAlpha(colors.accent || '#ef4444', 0.2)};
+              border-radius: 12px;
+              padding: 16px 20px;
+              margin: 8px 0;
+            `;
+            
+            switch (data.error) {
+              case 'no_key':
+                errorMessage = `
+                  <div style="${errorStyle}">
+                    <div style="font-weight:600;margin-bottom:8px;color:${colors.text}">🔑 API Key Required</div>
+                    <div style="color:${colors.subtext};font-size:0.9rem;line-height:1.5;">
+                      To use this feature, please add your YouTube Data API key in the extension options.
+                      <br><br>
+                      <strong>Right-click the extension icon → Options</strong> to get started.
+                    </div>
+                  </div>
+                `;
+                break;
+              
+              case 'quota_exceeded':
+                errorMessage = `
+                  <div style="${errorStyle}">
+                    <div style="font-weight:600;margin-bottom:8px;color:${colors.text}">📊 Daily Quota Reached</div>
+                    <div style="color:${colors.subtext};font-size:0.9rem;line-height:1.5;">
+                      Oops! Your YouTube API quota for today has been used up. Don't worry, this is normal!
+                      <br><br>
+                      <strong>What you can do:</strong>
+                      <ul style="margin:8px 0 0 16px;">
+                        <li>Wait until <strong>midnight Pacific Time</strong> when your quota resets</li>
+                        <li>Search for solutions directly on <a href="https://youtube.com/results?search_query=${encodeURIComponent(query)}" target="_blank" style="color:${colors.accent};text-decoration:underline;">YouTube</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                `;
+                break;
+              
+              case 'api_not_enabled':
+                errorMessage = `
+                  <div style="${errorStyle}">
+                    <div style="font-weight:600;margin-bottom:8px;color:${colors.text}">⚙️ API Not Enabled</div>
+                    <div style="color:${colors.subtext};font-size:0.9rem;line-height:1.5;">
+                      The YouTube Data API v3 isn't enabled for your project yet.
+                      <br><br>
+                      Please <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" style="color:${colors.accent};text-decoration:underline;">enable it here</a> and try again.
+                    </div>
+                  </div>
+                `;
+                break;
+              
+              case 'invalid_key':
+                errorMessage = `
+                  <div style="${errorStyle}">
+                    <div style="font-weight:600;margin-bottom:8px;color:${colors.text}">🔒 Invalid API Key</div>
+                    <div style="color:${colors.subtext};font-size:0.9rem;line-height:1.5;">
+                      The API key doesn't seem to be valid. Please check your key in the extension options.
+                      <br><br>
+                      <strong>Right-click the extension icon → Options</strong> to update your key.
+                    </div>
+                  </div>
+                `;
+                break;
+              
+              default:
+                errorMessage = `
+                  <div style="${errorStyle}">
+                    <div style="font-weight:600;margin-bottom:8px;color:${colors.text}">😕 Something Went Wrong</div>
+                    <div style="color:${colors.subtext};font-size:0.9rem;line-height:1.5;">
+                      We couldn't fetch videos right now. This might be a temporary issue.
+                      <br><br>
+                      Try again in a moment, or search directly on <a href="https://youtube.com/results?search_query=${encodeURIComponent(query)}" target="_blank" style="color:${colors.accent};text-decoration:underline;">YouTube</a>.
+                    </div>
+                  </div>
+                `;
+            }
+            
+            contentWrapper.innerHTML = errorMessage;
             return;
           }
+          
           cachedVideos = data.items || [];
           videosLoaded = true;
           renderVideoContent(contentWrapper, cachedVideos, colors, panel);
