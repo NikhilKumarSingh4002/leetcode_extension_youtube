@@ -27,17 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Check API key status
-  chrome.storage.sync.get(['userApiKey'], (result) => {
-    if (result.userApiKey) {
+  // Check API key status (encrypted storage)
+  CryptoUtils.hasApiKey().then((hasKey) => {
+    if (hasKey) {
       apiStatus.classList.add('configured');
       apiStatus.classList.remove('not-configured');
-      apiText.textContent = '✓ API key configured';
+      apiText.textContent = '✓ API key configured (encrypted)';
     } else {
       apiStatus.classList.add('not-configured');
       apiStatus.classList.remove('configured');
       apiText.textContent = '✗ API key not set - Click Settings';
     }
+  }).catch(() => {
+    apiStatus.classList.add('not-configured');
+    apiStatus.classList.remove('configured');
+    apiText.textContent = '✗ API key not set - Click Settings';
   });
 
   // Open options page
