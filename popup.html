@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeetCode YouTube Solutions</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Animated background -->
+    <div class="bg-gradient"></div>
+    <div class="bg-grid"></div>
+    
+    <!-- Floating orbs -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    
+    <!-- Main content -->
+    <div class="content">
+      <!-- Logo animation -->
+      <div class="logo-container">
+        <div class="logo-ring"></div>
+        <div class="logo">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Title with typing effect -->
+      <h1 class="title">
+        <span class="title-line">LeetCode</span>
+        <span class="title-line accent">YouTube Solutions</span>
+      </h1>
+      
+      <!-- Status indicator -->
+      <div class="status-container" id="statusContainer">
+        <div class="status-icon" id="statusIcon">
+          <svg class="icon-inactive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+          <svg class="icon-active" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="status-text">
+          <span class="status-label" id="statusLabel">Extension Inactive</span>
+          <span class="status-desc" id="statusDesc">Visit a LeetCode problem to activate</span>
+        </div>
+      </div>
+      
+      <!-- Instruction card -->
+      <div class="instruction-card">
+        <div class="instruction-header">
+          <span class="instruction-icon">💡</span>
+          <span>How to use</span>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-text">Go to <a href="https://leetcode.com/problemset/" target="_blank">leetcode.com</a></div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-text">Open any problem page</div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-text">Click "Show Videos" button</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Quick actions -->
+      <div class="actions">
+        <a href="https://leetcode.com/problemset/" target="_blank" class="btn btn-primary">
+          <span class="btn-icon">🚀</span>
+          <span>Go to LeetCode</span>
+        </a>
+        <button class="btn btn-secondary" id="optionsBtn">
+          <span class="btn-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
+      </div>
+      
+      <!-- API Key status -->
+      <div class="api-status" id="apiStatus">
+        <div class="api-dot"></div>
+        <span id="apiText">Checking API key...</span>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
