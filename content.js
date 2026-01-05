@@ -7,6 +7,7 @@
   let isVideosVisible = false; // Track visibility state (hidden by default)
   let videosLoaded = false; // Track if API has been called for current page
   let cachedVideos = []; // Cache videos for current page
+  let currentQuery = ''; // Store current search query for re-rendering on theme change
 
   async function loadUserKey() {
     return new Promise((resolve) => {
@@ -65,27 +66,57 @@
   }
 
   function deriveThemeColors() {
-    const cs = getComputedStyle(document.documentElement);
-    const bg = cs.getPropertyValue('--color-bg-1') || cs.getPropertyValue('--color-background') || '';
-    const panelBg = cs.getPropertyValue('--color-bg-2') || cs.getPropertyValue('--color-surface') || '';
-    const text = cs.getPropertyValue('--color-text-main') || cs.getPropertyValue('--color-text') || '';
-    const subtext = cs.getPropertyValue('--color-text-secondary') || '';
-    const accent = cs.getPropertyValue('--color-primary') || '';
-    if (!bg.trim()) {
-      const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (dark) {
-        return { background: '#0b1220', panel: '#0f1724', text: '#e6eef8', subtext: '#9fb3d1', accent: '#3b82f6' };
-      } else {
-        return { background: '#ffffff', panel: '#f8fafc', text: '#0f172a', subtext: '#475569', accent: '#409eff' };
-      }
+    // Detect LeetCode theme more reliably
+    const html = document.documentElement;
+    const body = document.body;
+    
+    // Check for LeetCode's dark theme indicators
+    const isDark = html.classList.contains('dark') || 
+                   body.classList.contains('dark') ||
+                   html.getAttribute('data-theme') === 'dark' ||
+                   body.getAttribute('data-theme') === 'dark' ||
+                   document.querySelector('[class*="dark"]') !== null && 
+                   (getComputedStyle(body).backgroundColor.includes('rgb(26') || 
+                    getComputedStyle(body).backgroundColor.includes('rgb(10') ||
+                    getComputedStyle(body).backgroundColor.includes('rgb(15') ||
+                    getComputedStyle(body).backgroundColor.includes('rgb(0'));
+    
+    // Also check computed background color of body
+    const bodyBg = getComputedStyle(body).backgroundColor;
+    const match = bodyBg.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+    let isLightByColor = true;
+    if (match) {
+      const r = parseInt(match[1]);
+      const g = parseInt(match[2]);
+      const b = parseInt(match[3]);
+      // If luminance is low, it's dark theme
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+      isLightByColor = luminance > 128;
     }
-    return {
-      background: bg.trim() || '#fff',
-      panel: panelBg.trim() || '#f8fafc',
-      text: text.trim() || '#0f172a',
-      subtext: subtext.trim() || '#475569',
-      accent: accent.trim() || '#409eff'
-    };
+    
+    const isLightTheme = isLightByColor && !isDark;
+    
+    if (isLightTheme) {
+      return { 
+        background: '#ffffff', 
+        panel: '#f8fafc', 
+        text: '#1a1a1a', 
+        subtext: '#4b5563', 
+        accent: '#2563eb',
+        cardBg: '#ffffff',
+        cardBorder: '#e5e7eb'
+      };
+    } else {
+      return { 
+        background: '#1a1a2e', 
+        panel: '#16213e', 
+        text: '#e6eef8', 
+        subtext: '#9fb3d1', 
+        accent: '#3b82f6',
+        cardBg: '#1e293b',
+        cardBorder: '#334155'
+      };
+    }
   }
 
   function createPanelElement() {
@@ -222,11 +253,12 @@
       card.style.flex = '0 0 auto';
       card.style.borderRadius = '8px';
       card.style.overflow = 'hidden';
-      card.style.background = colors.panel;
-      card.style.border = `1px solid ${hexAlpha(colors.subtext || '#000', 0.08)}`;
+      card.style.background = colors.cardBg || colors.panel;
+      card.style.border = `1px solid ${colors.cardBorder || hexAlpha(colors.subtext || '#000', 0.15)}`;
       card.style.cursor = 'pointer';
       card.style.display = 'flex';
       card.style.flexDirection = 'column';
+      card.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
 
       const thumbWrap = document.createElement('div');
       thumbWrap.style.width = '100%';
@@ -393,13 +425,13 @@
     const colors = deriveThemeColors();
     panel.style.background = colors.background;
     panel.style.color = colors.text;
-    panel.style.border = `1px solid ${hexAlpha(colors.subtext || '#000', 0.12)}`;
+    panel.style.border = `1px solid ${colors.cardBorder || hexAlpha(colors.subtext || '#000', 0.12)}`;
     
     const title = getTitle() || slug;
-    const query = `${title} LeetCode solution`;
+    currentQuery = `${title} LeetCode solution`;
     
     // Just render the toggle button, don't fetch videos yet
-    renderCarousel(panel, [], colors, query);
+    renderCarousel(panel, [], colors, currentQuery);
   }
 
   function startObserving() {
@@ -413,6 +445,29 @@
       if (!document.getElementById(PANEL_ID) && location.pathname.includes('/problems/')) setTimeout(init,400);
     });
     mo.observe(document.body, {childList:true, subtree:true});
+    
+    // Watch for theme changes on html element
+    const themeObserver = new MutationObserver(() => {
+      const panel = document.getElementById(PANEL_ID);
+      if (panel && currentQuery) {
+        const colors = deriveThemeColors();
+        panel.style.background = colors.background;
+        panel.style.color = colors.text;
+        panel.style.border = `1px solid ${colors.cardBorder || hexAlpha(colors.subtext || '#000', 0.12)}`;
+        // Re-render with current state
+        renderCarousel(panel, [], colors, currentQuery);
+        // If videos were visible and loaded, show them again
+        if (isVideosVisible && videosLoaded && cachedVideos.length > 0) {
+          const contentWrapper = panel.querySelector('.lc-yt-content-wrapper');
+          if (contentWrapper) {
+            contentWrapper.style.display = 'block';
+            renderVideoContent(contentWrapper, cachedVideos, colors, panel);
+          }
+        }
+      }
+    });
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-theme', 'style'] });
   }
 
   startObserving();
