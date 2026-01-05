@@ -1,5 +1,5 @@
 // content.js - LeetCode YouTube Solutions (user-provided API key)
-// Horizontal carousel + inline player. Calls YouTube Data API directly using user's key saved in chrome.storage.sync
+// Horizontal carousel + inline player. Calls YouTube Data API directly using user's key (AES-GCM encrypted in chrome.storage.local)
 
 (function () {
   const PANEL_ID = "lc-youtube-panel-userkey";
@@ -10,9 +10,13 @@
   let currentQuery = ''; // Store current search query for re-rendering on theme change
 
   async function loadUserKey() {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get({ userApiKey: "" }, (items) => resolve(items.userApiKey || ""));
-    });
+    // Use CryptoUtils for encrypted storage with caching
+    try {
+      return await CryptoUtils.loadApiKey();
+    } catch (e) {
+      console.error('Failed to load API key:', e);
+      return '';
+    }
   }
 
   function getSlug() {
