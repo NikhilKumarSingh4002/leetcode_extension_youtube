@@ -43,6 +43,7 @@
     "128": "img.png"
   },
   "action": {
+    "default_popup": "popup.html",
     "default_icon": {
       "16": "img.png",
       "48": "img.png"
