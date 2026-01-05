@@ -38,6 +38,15 @@
     }
   ],
   "icons": {
-    "48": "icon48.png"
+    "16": "img.png",
+    "48": "img.png",
+    "128": "img.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "img.png",
+      "48": "img.png"
+    },
+    "default_title": "LeetCode YouTube Solutions"
   }
 }
