@@ -3,31 +3,65 @@
 <head>
   <meta charset="utf-8">
   <title>LeetCode YouTube Solutions - Options</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; max-width: 720px; color: #0f172a; }
-    label{font-weight:600;display:block;margin-bottom:8px}
-    input[type=text]{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px}
-    button{margin-top:10px;padding:8px 12px;border-radius:6px;background:#2563eb;color:#fff;border:0;cursor:pointer}
-    p.note{font-size:0.9rem;color:#475569}
-    a.inline{color:#2563eb}
-  </style>
+  <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <h2>LeetCode YouTube Solutions — Setup</h2>
-  <p class="note">This extension requires a personal <strong>YouTube Data API key</strong>. The key is stored locally in your browser and is never sent to anyone else by this extension.</p>
-  <ol>
-    <li>Open <a class="inline" href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console → APIs & Services → Credentials</a>.</li>
-    <li>Click <strong>Create credentials → API key</strong>. Copy the generated key.</li>
-    <li>Paste the key below and click Save.</li>
-  </ol>
+  <!-- Animated background elements -->
+  <div class="mesh-gradient"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="grid-pattern"></div>
+  
+  <div class="card">
+    <div class="icon-wrapper">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+      </svg>
+    </div>
+    
+    <h2>LeetCode YouTube Solutions</h2>
+    <p class="note">This extension requires a personal <strong>YouTube Data API key</strong>. The key is stored locally in your browser and is never sent to anyone else.</p>
+    
+    <div class="steps">
+      <ol>
+        <li>Go to <a class="inline" href="https://console.cloud.google.com/apis/credentials" target="_blank">Google Cloud Console → Credentials</a></li>
+        <li>Create a new project (or select an existing one)</li>
+        <li>Enable the <a class="inline" href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank">YouTube Data API v3</a> for your project</li>
+        <li>Click <strong>Create credentials → API key</strong> and copy it below</li>
+      </ol>
+    </div>
 
-  <label for="ytKey">YouTube Data API Key</label>
-  <input id="ytKey" type="text" placeholder="AIzaSy..." autocomplete="off"/>
-  <div>
-    <button id="saveBtn">Save Key</button>
-    <button id="clearBtn" style="margin-left:8px;background:#ef4444">Clear</button>
+    <div class="api-note">
+      <span class="api-note-icon">⚠️</span>
+      <span class="api-note-text">
+        <strong>Important:</strong> Make sure to <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank">enable YouTube Data API v3</a> in your Google Cloud project, or the extension won't work!
+      </span>
+    </div>
+
+    <div class="input-group">
+      <label for="ytKey">
+        <span class="label-icon">🔑</span>
+        YouTube Data API Key
+      </label>
+      <div class="input-wrapper">
+        <input id="ytKey" type="text" placeholder="AIzaSy..." autocomplete="off"/>
+      </div>
+    </div>
+    
+    <div class="btn-group">
+      <button id="saveBtn">
+        <span class="btn-icon">✨</span>
+        Save Key
+      </button>
+      <button id="clearBtn">
+        <span class="btn-icon">🗑️</span>
+        Clear
+      </button>
+    </div>
+    
+    <p id="status"></p>
   </div>
-  <p id="status" class="note"></p>
 
   <script src="options.js"></script>
 </body>
