@@ -5,6 +5,8 @@
   const PANEL_ID = "lc-youtube-panel-userkey";
   const TOGGLE_BTN_ID = "lc-youtube-toggle-btn";
   let isVideosVisible = false; // Track visibility state (hidden by default)
+  let videosLoaded = false; // Track if API has been called for current page
+  let cachedVideos = []; // Cache videos for current page
 
   async function loadUserKey() {
     return new Promise((resolve) => {
@@ -115,7 +117,7 @@
     return `rgba(${r},${g},${b},${alpha})`;
   }
 
-  function renderCarousel(panel, items, colors) {
+  function renderCarousel(panel, items, colors, query) {
     panel.innerHTML = '';
     
     // Create toggle button container
@@ -145,11 +147,38 @@
     panel.appendChild(contentWrapper);
     
     // Toggle button click handler
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn.addEventListener('click', async () => {
       isVideosVisible = !isVideosVisible;
-      contentWrapper.style.display = isVideosVisible ? 'block' : 'none';
       toggleBtn.textContent = isVideosVisible ? '🎬 Hide Videos' : '🎬 Show Videos';
+      
+      if (isVideosVisible) {
+        // Only fetch videos if not already loaded
+        if (!videosLoaded) {
+          contentWrapper.innerHTML = `<div style="color:${colors.subtext}">Loading YouTube solutions...</div>`;
+          contentWrapper.style.display = 'block';
+          const data = await fetchVideos(query);
+          if (data.error === 'no_key') {
+            contentWrapper.innerHTML = `<div style="color:${colors.subtext}">No YouTube API key configured. Open extension options to add yours.</div>`;
+            return;
+          }
+          cachedVideos = data.items || [];
+          videosLoaded = true;
+          renderVideoContent(contentWrapper, cachedVideos, colors, panel);
+        }
+        contentWrapper.style.display = 'block';
+      } else {
+        contentWrapper.style.display = 'none';
+      }
     });
+    
+    // If videos are already visible and loaded, render them
+    if (isVideosVisible && videosLoaded) {
+      renderVideoContent(contentWrapper, cachedVideos, colors, panel);
+    }
+  }
+
+  function renderVideoContent(contentWrapper, items, colors, panel) {
+    contentWrapper.innerHTML = '';
     
     const header = document.createElement('div');
     header.className = 'lc-yt-carousel-header';
@@ -175,7 +204,7 @@
       const empty = document.createElement('div');
       empty.textContent = 'No YouTube solutions found (paste your API key in extension options).';
       empty.style.color = colors.subtext;
-      panel.appendChild(empty);
+      contentWrapper.appendChild(empty);
       return;
     }
 
@@ -237,52 +266,127 @@
 
       carousel.appendChild(card);
 
-      card.addEventListener('click', () => openPlayer(panel, vid, items, idx, colors));
+      card.addEventListener('click', () => openPlayer(contentWrapper, vid, items, idx, colors));
     });
 
-    const controls = document.createElement('div');
-    controls.style.display = 'flex';
-    controls.style.gap = '8px';
-    controls.style.marginTop = '6px';
-    controls.style.alignItems = 'center';
-    const left = document.createElement('button');
-    left.textContent = '◀'; left.title = 'Scroll left'; left.className = 'lc-yt-scroll-btn'; left.style.cursor='pointer';
-    left.addEventListener('click', ()=> carousel.scrollBy({left:-300, behavior:'smooth'}));
-    const right = document.createElement('button');
-    right.textContent = '▶'; right.title='Scroll right'; right.className='lc-yt-scroll-btn'; right.style.cursor='pointer';
-    right.addEventListener('click', ()=> carousel.scrollBy({left:300, behavior:'smooth'}));
-    controls.appendChild(left); controls.appendChild(right);
-    panel.appendChild(controls);
-
-    let playerArea = panel.querySelector('.lc-yt-player-area');
+    let playerArea = contentWrapper.querySelector('.lc-yt-player-area');
     if (!playerArea) {
       playerArea = document.createElement('div');
       playerArea.className = 'lc-yt-player-area';
       playerArea.style.marginTop = '8px';
-      panel.appendChild(playerArea);
+      contentWrapper.appendChild(playerArea);
     }
   }
 
   function openPlayer(panel, videoId, items, idx, colors) {
-    const playerArea = panel.querySelector('.lc-yt-player-area');
-    if (!playerArea) return;
-    playerArea.innerHTML = `
-      <div class="lc-yt-player-wrapper" style="display:flex;flex-direction:column;align-items:center;gap:8px">
-        <div class="lc-yt-player-inner" style="width:100%;max-width:1100px;position:relative;padding-top:56.25%;background:#000;border-radius:8px;overflow:hidden">
-          <iframe class="lc-yt-iframe" src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position:absolute;left:0;top:0;width:100%;height:100%;border:0"></iframe>
-        </div>
-        <div style="width:100%;max-width:1100px;display:flex;gap:10px;align-items:center;">
-          <button class="lc-yt-button" style="padding:6px 10px;border-radius:6px;border:0;background:${colors.accent};color:#fff;cursor:pointer">⬅ Back</button>
-          <a class="lc-yt-link" href="https://www.youtube.com/watch?v=${videoId}" target="_blank" rel="noopener" style="color:${colors.subtext};text-decoration:none">Open on YouTube</a>
-        </div>
-      </div>
-    `;
-    const back = playerArea.querySelector('.lc-yt-button');
-    if (back) back.addEventListener('click', ()=> playerArea.innerHTML = '');
-    playerArea.scrollIntoView({behavior:'smooth', block:'nearest'});
+    // Remove any existing overlay
+    const existingOverlay = document.getElementById('lc-yt-video-overlay');
+    if (existingOverlay) existingOverlay.remove();
+    
+    // Create overlay modal
+    const overlay = document.createElement('div');
+    overlay.id = 'lc-yt-video-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.85)';
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+    overlay.style.zIndex = '99999';
+    overlay.style.padding = '20px';
+    overlay.style.boxSizing = 'border-box';
+    
+    // Create player container
+    const playerContainer = document.createElement('div');
+    playerContainer.style.width = '100%';
+    playerContainer.style.maxWidth = '1000px';
+    playerContainer.style.position = 'relative';
+    playerContainer.style.paddingTop = '56.25%'; // 16:9 aspect ratio
+    playerContainer.style.backgroundColor = '#000';
+    playerContainer.style.borderRadius = '12px';
+    playerContainer.style.overflow = 'hidden';
+    
+    // Create iframe
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    iframe.allowFullscreen = true;
+    iframe.style.position = 'absolute';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = '0';
+    
+    playerContainer.appendChild(iframe);
+    
+    // Create controls bar
+    const controls = document.createElement('div');
+    controls.style.display = 'flex';
+    controls.style.gap = '12px';
+    controls.style.marginTop = '12px';
+    controls.style.alignItems = 'center';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ Close';
+    closeBtn.style.padding = '8px 16px';
+    closeBtn.style.borderRadius = '6px';
+    closeBtn.style.border = '0';
+    closeBtn.style.background = colors.accent || '#3b82f6';
+    closeBtn.style.color = '#fff';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.fontWeight = '600';
+    closeBtn.style.fontSize = '0.95rem';
+    
+    const youtubeLink = document.createElement('a');
+    youtubeLink.href = `https://www.youtube.com/watch?v=${videoId}`;
+    youtubeLink.target = '_blank';
+    youtubeLink.rel = 'noopener';
+    youtubeLink.textContent = 'Open on YouTube ↗';
+    youtubeLink.style.color = '#fff';
+    youtubeLink.style.textDecoration = 'none';
+    youtubeLink.style.fontSize = '0.9rem';
+    youtubeLink.style.opacity = '0.8';
+    
+    controls.appendChild(closeBtn);
+    controls.appendChild(youtubeLink);
+    
+    overlay.appendChild(playerContainer);
+    overlay.appendChild(controls);
+    document.body.appendChild(overlay);
+    
+    // Close when clicking overlay background (outside player)
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
+    
+    // Close button click
+    closeBtn.addEventListener('click', () => {
+      overlay.remove();
+    });
+    
+    // Close on Escape key
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
   }
 
   async function init() {
+    // Reset state for new page - videos hidden by default, no API call yet
+    isVideosVisible = false;
+    videosLoaded = false;
+    cachedVideos = [];
+    
     const slug = getSlug();
     if (!slug) return;
     const panel = createPanelElement();
@@ -290,15 +394,12 @@
     panel.style.background = colors.background;
     panel.style.color = colors.text;
     panel.style.border = `1px solid ${hexAlpha(colors.subtext || '#000', 0.12)}`;
-    panel.innerHTML = `<div style="color:${colors.subtext}">Loading YouTube solutions...</div>`;
+    
     const title = getTitle() || slug;
     const query = `${title} LeetCode solution`;
-    const data = await fetchVideos(query);
-    if (data.error === 'no_key') {
-      panel.innerHTML = `<div style="color:${colors.subtext}">No YouTube API key configured. Open extension options to add yours.</div>`;
-      return;
-    }
-    renderCarousel(panel, data.items, colors);
+    
+    // Just render the toggle button, don't fetch videos yet
+    renderCarousel(panel, [], colors, query);
   }
 
   function startObserving() {
